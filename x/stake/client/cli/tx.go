@@ -28,9 +28,6 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				WithAccountDecoder(authcmd.GetAccountDecoder(cdc))
 
 			amounstStr := viper.GetString(FlagAmount)
-			if amounstStr == "" {
-				return fmt.Errorf("Must specify amount to stake using --amount")
-			}
 			amount, err := sdk.ParseCoin(amounstStr)
 			if err != nil {
 				return err
@@ -42,25 +39,17 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 			}
 
 			pkStr := viper.GetString(FlagPubKey)
-			if len(pkStr) == 0 {
-				return fmt.Errorf("must use --pubkey flag")
-			}
-
 			pk, err := sdk.GetConsPubKeyBech32(pkStr)
 			if err != nil {
 				return err
 			}
 
-			if viper.GetString(FlagMoniker) == "" {
-				return fmt.Errorf("please enter a moniker for the validator using --moniker")
-			}
-
-			description := stake.Description{
-				Moniker:  viper.GetString(FlagMoniker),
-				Identity: viper.GetString(FlagIdentity),
-				Website:  viper.GetString(FlagWebsite),
-				Details:  viper.GetString(FlagDetails),
-			}
+			description := stake.NewDescription(
+				viper.GetString(FlagMoniker),
+				viper.GetString(FlagIdentity),
+				viper.GetString(FlagWebsite),
+				viper.GetString(FlagDetails),
+			)
 
 			// get the initial validator commission parameters
 			rateStr := viper.GetString(FlagCommissionRate)
@@ -113,6 +102,9 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("Node's public IP. It takes effect only when used in combination with --%s", FlagGenesisFormat))
 	cmd.Flags().String(FlagNodeID, "", "Node's ID")
 	cmd.MarkFlagRequired(client.FlagFrom)
+	cmd.MarkFlagRequired(FlagAmount)
+	cmd.MarkFlagRequired(FlagPubKey)
+	cmd.MarkFlagRequired(FlagMoniker)
 
 	return cmd
 }
