@@ -670,6 +670,10 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 		gasWanted = result.GasWanted
 	}
 
+	if mode == runTxModeCheck {
+		return
+	}
+
 	if mode == runTxModeSimulate {
 		result = app.runMsgs(ctx, msgs, mode)
 		result.GasWanted = gasWanted
