@@ -200,6 +200,10 @@ func (st *state) CacheMultiStore() sdk.CacheMultiStore {
 	return st.ms.CacheMultiStore()
 }
 
+func (st *state) Context() sdk.Context {
+	return st.ctx
+}
+
 func (app *BaseApp) setCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
@@ -383,7 +387,9 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res 
 		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
 	}
 
-	ctx := sdk.NewContext(app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.Logger).
+	// Cache wrap the checkState multistore once for safety.
+	ctx := app.checkState.Context().
+		WithMultiStore(app.checkState.CacheMultiStore()).
 		WithMinimumFees(app.minimumFees)
 
 	// Passes the rest of the path as an argument to the querier.
@@ -578,7 +584,7 @@ func (app *BaseApp) getState(mode runTxMode) *state {
 	return app.deliverState
 }
 
-func (app *BaseApp) initializeContext(ctx sdk.Context, mode runTxMode) sdk.Context {
+func (app *BaseApp) initializeContextForTx(ctx sdk.Context, mode runTxMode) sdk.Context {
 	if mode == runTxModeSimulate {
 		ctx = ctx.WithMultiStore(app.getState(runTxModeSimulate).CacheMultiStore())
 	}
@@ -617,7 +623,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 	var gasWanted int64
 
 	ctx := app.getContextForAnte(mode, txBytes)
-	ctx = app.initializeContext(ctx, mode)
+	ctx = app.initializeContextForTx(ctx, mode)
 
 	defer func() {
 		if r := recover(); r != nil {
